@@ -5,6 +5,11 @@ description: Plan, design, implement, verify, and security-review software chang
 
 # Agentic Development
 
+For a new feature or capability with several user stories, or when the user
+asks for a spec, use `spec-driven-development` instead; it reuses the Design,
+Implement, and Review rules below. This flow fits bug fixes, refactors, and
+single-story changes.
+
 Five steps. The bar is code a senior engineer would still stand behind when the
 codebase and traffic triple: sound structure, named patterns, safe by default.
 Not the shortest output that passes today.
