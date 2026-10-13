@@ -9,11 +9,16 @@
 
 # Dependencies, build output, caches
 node_modules/
+vendor/
 .venv/
 venv/
 __pycache__/
 dist/
 build/
+.next/
+out/
+target/
+.turbo/
 coverage/
 
 # Claude-managed sync of claude.ai skills

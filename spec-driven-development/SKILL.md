@@ -48,11 +48,16 @@ Sections: Technical approach, Affected components/files, Data/API changes,
 Testing strategy, Risks and tradeoffs, and a requirement-coverage table mapping
 each spec.md requirement to the plan section that satisfies it.
 
-Testing strategy names the test framework(s) already in the repo (don't
-introduce a new one without calling it out as a decision), the unit/
-integration/e2e boundary for this change, and confirms tasks.md will be
-written test-first (see §4) — note any task where that isn't practical (e.g.
-a pure config or doc change) and why.
+Technical approach follows the Design rules in `agentic-development` §2:
+name the patterns used, where domain logic vs. adapters live, and how the
+change holds under load (indexes, pagination, queues, timeouts).
+
+Testing strategy names the unit test framework already in the repo and lists
+which units get tests, per the `tdd` skill's testing policy. Unit tests only;
+no integration or end-to-end tests.
+
+Risks and tradeoffs include the security surface: entry points, callers,
+and inputs crossing a trust boundary.
 
 **Done when:** every requirement in spec.md's coverage table maps to a
 concrete part of the plan — no requirement left unaddressed.
@@ -67,12 +72,10 @@ checklist. Each task: id, one-sentence description, files it touches,
 dependencies on other task ids, the concrete check that proves it done, and a
 checkbox.
 
-Default the done-condition to a test written before the implementation, per
-the testing strategy in plan.md: name the specific test file/case the task
-will add or extend, not just "tests pass." Only fall back to a build or
-observable-behavior check for tasks that genuinely have no meaningful test
-(config, docs, pure refactors covered by existing tests) — say so explicitly
-rather than leaving it implicit.
+For tasks covering logic plan.md marks for testing, the done-condition is a
+named unit test written first (file and case, not just "tests pass"). For
+the rest (wiring, adapters, config, docs), the done-condition is a passing
+type-check/lint/build or an observable behaviour; say which.
 
 Prefer vertical slices over horizontal layers. Mark tasks with no dependency
 on each other as parallelizable.
@@ -102,7 +105,9 @@ code.
 
 ## 5. Close out
 
-Once every task is checked: summarize what changed against spec.md's
+Once every task is checked, run the review in `agentic-development` §4
+(including `owasp-check` where it applies) over the whole change and fix
+Critical/High findings. Then summarize what changed against spec.md's
 requirements, list anything deferred or descoped, report the verification
-actually performed (tests/build/lint run and their results), and leave
+actually performed (tests/build/lint run and their results, OWASP result), and leave
 spec.md, plan.md, and tasks.md in the repo as the record of the change.
