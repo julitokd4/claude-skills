@@ -30,6 +30,7 @@
 | V. Security by Default | | |
 | VI. Focused Unit Testing | | |
 | VII. Observability and Errors | | |
+| VIII. Least New Code | | |
 
 ## Architecture
 
@@ -42,6 +43,10 @@
 **Domain vs. adapters**: [which modules are pure, which ports they define, which adapters implement them]
 
 **Scalability**: [statelessness, indexes and access patterns, pagination, async work and idempotency, timeouts and fallbacks, schema migration steps]
+
+**Reused**: [existing modules, helpers, stdlib, installed dependencies this builds on]
+
+**Not built**: [options, features, flexibility deliberately left out]
 
 **Trade-offs**: [option chosen vs. rejected, cost now vs. cost later]
 

@@ -18,6 +18,9 @@ maintenance cost.
 - security-relevant logic: authorization decisions, input sanitisation;
 - a regression test for every bug fix.
 
+Aim for one good test per risky behaviour that fails when it breaks, not
+coverage numbers.
+
 **Do not test**:
 
 - integration with real databases, queues, or HTTP (no integration or
