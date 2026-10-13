@@ -44,10 +44,11 @@ style or introducing new patterns.
 
 ## 3. Implement
 
-Make the smallest coherent change that satisfies the task. Where an
-acceptance criterion is naturally a test, implement it test-first using the
-`tdd` skill's red-green-refactor loop rather than writing the code first and
-testing after.
+Make the change following the Design rules in `agentic-development` §2
+(pure domain logic, adapters at the edges, named patterns, scalability
+checks). Where a criterion covers logic the `tdd` skill's testing policy says
+to test, write that unit test first with its red-green-refactor loop. Do not
+write integration or end-to-end tests.
 
 Avoid scope creep: don't fix unrelated issues, refactor untouched code, or
 add functionality the criteria don't call for. Note anything adjacent you
@@ -65,10 +66,13 @@ right." For every criterion from step 1:
 3. Record the result: pass, fail, or not applicable (with a reason).
 
 If any criterion fails, fix it and re-run the whole checklist — a fix for
-one criterion can break another; don't assume the rest still hold. If the
-task touched shared code, also run the repo's standard checks (build, lint,
-type-check, broader test suite) even when they aren't listed as criteria,
-since those can regress silently.
+one criterion can break another; don't assume the rest still hold. Always
+run the repo's unit suite, lint, and type-check too, even when they aren't
+listed as criteria.
+
+Then run the review in `agentic-development` §4, including `owasp-check`
+when the task touches an entry point, authn/authz, user input, data access,
+secrets/config, or dependencies. Fix Critical/High findings before reporting.
 
 ## 5. Report
 
@@ -77,6 +81,7 @@ Present:
 - the task and the acceptance criteria agreed in step 1;
 - the checklist with each criterion's result and how it was verified;
 - files changed;
+- OWASP result, or "not applicable" and why;
 - anything descoped, deferred, or found-but-not-fixed;
 - any criterion that couldn't be verified, and why.
 

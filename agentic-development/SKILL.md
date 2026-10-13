@@ -1,124 +1,84 @@
 ---
 name: agentic-development
-description: Plan, implement, verify, and review software changes using a specification-driven workflow. Use for features, bug fixes, refactoring, migrations, and other repository changes.
+description: Plan, design, implement, verify, and security-review software changes. Use for features, bug fixes, refactoring, migrations, and other repository changes.
 ---
 
 # Agentic Development
 
-Follow this workflow for software changes.
+Five steps. The bar is code a senior engineer would still stand behind when the
+codebase and traffic triple: sound structure, named patterns, safe by default.
+Not the shortest output that passes today.
 
-## 1. Understand the request
+## 1. Understand
 
-Before editing:
+1. Restate the outcome and its acceptance criteria.
+2. Read the repo's instructions, the code you will touch, its callers, and a
+   similar existing feature. Find the lint, type-check, and test commands.
+3. Ask only about gaps that would change the implementation. Do not invent
+   requirements.
 
-1. Restate the desired outcome.
-2. Identify relevant acceptance criteria.
-3. Identify ambiguities that could materially affect behavior.
-4. Ask questions only when the missing information would change the implementation.
+## 2. Design
 
-Do not invent product requirements.
+Before editing a non-trivial change, write a short plan:
 
-## 2. Inspect the repository
+- **Structure**: where the logic lives. Domain logic stays pure; HTTP, DB,
+  queues, and third-party APIs live in adapters at the edges. Dependencies
+  are injected, not imported globals.
+- **Patterns**: use one only when it resolves a real force (strategy for
+  swappable behaviour, repository for persistence, adapter for an external
+  API, factory for complex construction). Name it in the plan.
+- **Scalability**: stateless services; indexed queries with no N+1;
+  paginated lists; slow or failure-prone work on a queue with idempotency and
+  retries; a timeout on every network call; backward-compatible schema
+  changes (expand → migrate → contract).
+- **Security surface**: entry points, who can call them, inputs crossing a
+  trust boundary.
+- **What gets unit tests**: per the `tdd` skill's testing policy.
+- **Trade-off**: when two approaches are viable, one line on cost now vs.
+  cost later; pick the durable one.
 
-Find and read:
+Follow the repo's existing conventions. Where they conflict with the above,
+flag it rather than mixing styles.
 
-- applicable repository instructions;
-- architecture documentation;
-- relevant implementation files;
-- similar existing features;
-- tests covering the affected behavior;
-- build, lint, type-check, and test commands.
+## 3. Implement
 
-Prefer existing project patterns over introducing new abstractions.
+- Make the change in vertical slices that each leave the code working.
+- Validate input at trust boundaries; return explicit, typed errors.
+- Write the unit tests the plan named, test-first via `tdd` where the logic
+  is non-trivial. Do not write integration or end-to-end tests.
+- Do not hand-edit generated files or refactor unrelated code.
 
-## 3. Produce a plan
+## 4. Verify and review
 
-For non-trivial changes, describe:
+Run, and read the output yourself:
 
-- files or components likely to change;
-- intended implementation;
-- tests to add or update;
-- compatibility, security, or migration risks;
-- assumptions requiring confirmation.
+1. Unit tests for the changed code, then the full unit suite.
+2. Type check, lint, format.
+3. Build, when the project has one.
 
-Do not implement until the plan is sufficiently concrete.
+Then review the full diff:
 
-## 4. Decompose the work
+- **Correctness**: wrong behaviour, unhandled errors, race conditions,
+  non-idempotent operations, breaking changes, unsafe migrations.
+- **Design**: logic in the wrong layer, leaked I/O in domain code, missing
+  timeout/pagination/index, an untested important rule, needless complexity.
+- **Security**: run the `owasp-check` skill on the diff whenever it touches an
+  entry point, authn/authz, user input, data access, secrets/config, or
+  dependencies. Otherwise record "OWASP check: not applicable" and why.
 
-Split large changes into bounded, independently verifiable tasks.
+Fix every Critical/High security finding and every correctness bug before
+presenting. For significant changes, ask an independent review agent when
+available.
 
-Prefer vertical slices that deliver observable behavior.
+Never claim a check passed unless you ran it.
 
-Use parallel agents only for independent work such as:
-
-- codebase exploration;
-- backend and frontend investigation;
-- test-gap analysis;
-- documentation research;
-- independent review.
-
-Avoid parallel agents editing the same files or shared working tree.
-
-## 5. Implement
-
-For each task:
-
-1. Make the smallest coherent change.
-2. Preserve existing behavior unless the specification changes it.
-3. Follow established architecture and naming conventions.
-4. Handle errors and important edge cases.
-5. Avoid unrelated refactoring.
-6. Add or update tests with the implementation.
-
-Do not modify generated files manually.
-
-## 6. Verify
-
-Run the narrowest relevant checks first, followed by the broader project checks when practical:
-
-1. Changed-feature tests
-2. Unit and integration tests
-3. Type checking
-4. Linting and formatting
-5. Build
-6. End-to-end tests, when applicable
-
-Never claim a check passed unless it was actually executed.
-
-Report:
-
-- exact commands executed;
-- whether they passed;
-- failures or skipped checks;
-- remaining uncertainty.
-
-## 7. Review the diff
-
-Before finishing, inspect the complete diff for:
-
-- incorrect behavior;
-- missing authorization;
-- security vulnerabilities;
-- race conditions;
-- non-idempotent operations;
-- backward-compatibility problems;
-- unsafe database migrations;
-- missing tests;
-- unnecessary complexity;
-- accidental unrelated changes.
-
-For significant changes, request an independent review agent when available.
-
-Run the `owasp-check` skill on the diff whenever the change touches an entry point, authentication or authorization, user input, data access, secrets or configuration, or dependencies. Resolve every Critical and High finding before presenting the result, and list Medium, Low, and Plausible findings under remaining risks. For a change that touches none of these, record "OWASP check: not applicable" with the reason.
-
-## 8. Present the result
-
-Provide:
+## 5. Report
 
 1. Outcome
-2. Important implementation decisions
-3. Files or components changed
-4. Verification performed, including the OWASP check result
-5. Remaining risks or follow-up work
+2. Design decisions and patterns used, with trade-offs
+3. Files changed
+4. Checks run (commands and results), what was unit-tested and why
+5. OWASP result; Medium/Low/Plausible findings as remaining risks
+6. Stopgaps and follow-ups (`TODO(reason)` in code where relevant)
 
-Do not describe incomplete or unverified work as completed.
+Do not describe incomplete or unverified work as done.
