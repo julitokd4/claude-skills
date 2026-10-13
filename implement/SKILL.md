@@ -17,13 +17,15 @@ a `tasks.md`), a ticket reference, or a plain description.
 Before writing any code, pin down two things:
 
 1. **The task.** If it references a `tasks.md` entry, read that task's own
-   fields (files touched, dependencies, done-condition). If it's a ticket or
-   plain description, restate it in one or two sentences to confirm scope.
+   line (`- [ ] T012 [P] [US1] Description in path`), its phase's Goal,
+   Independent Test, and Checkpoint, and the plan.md and data-model.md parts
+   it relies on. If it's a ticket or plain description, restate it in one or
+   two sentences to confirm scope.
 2. **Acceptance criteria / Definition of Done** — the concrete, checkable
    conditions that make this "done." Look for them in order of preference:
-   - explicit criteria already attached to the task (a `tasks.md`
-     done-condition, a ticket's AC section, a `spec.md` requirement it maps
-     to);
+   - explicit criteria already attached to the task (constraints quoted in
+     the `tasks.md` line, the story's acceptance scenarios and FR-### in
+     `spec.md`, a ticket's AC section);
    - a repo-level Definition of Done (`CONTRIBUTING.md`, `CLAUDE.md`, an
      ADR, a house style doc);
    - if neither exists, derive 3–6 criteria yourself from the task
@@ -84,5 +86,7 @@ Present:
 - OWASP result, or "not applicable" and why;
 - anything descoped, deferred, or found-but-not-fixed;
 - any criterion that couldn't be verified, and why.
+
+For a `tasks.md` task, mark it `[X]` only when every criterion passed.
 
 Do not report the task as complete if any criterion is unmet or unverified.

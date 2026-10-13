@@ -1,113 +1,224 @@
 ---
 name: spec-driven-development
-description: Spec-Driven Development (SDD) - write persisted spec.md, plan.md, and tasks.md artifacts under specs/<slug>/ with human sign-off between stages, then implement against tasks.md. Use when the user asks for SDD, spec-driven development, a spec-kit style workflow, or explicitly wants a feature tracked through spec/plan/tasks documents in the repo instead of an in-conversation plan.
+description: Spec-Driven Development (SDD) in the GitHub spec-kit style - constitution, then specify → clarify → plan → tasks → analyze → implement ⇄ converge, with persisted artifacts under specs/<NNN-name>/ and human sign-off between stages. Use when the user asks for SDD, spec-driven development, spec-kit, or a new feature or capability that spans several user stories and deserves a spec, plan, and task list in the repo.
 ---
 
 # Spec-Driven Development
 
-Four stages, each persisted as a file under `specs/<slug>/`, each gated on explicit
-human sign-off before the next begins. The files are the durable record — write
-them so someone opening the repo cold, with no memory of this conversation,
-understands what was decided and why.
+The spec is the source of truth; code serves it. Intent (WHAT/WHY) lives in
+`spec.md`, technical decisions (HOW) in `plan.md`, executable work in
+`tasks.md`. When code and spec disagree, fix the spec or the code, never let
+them drift.
 
-For a well-understood, single-file, low-ambiguity change, this ceremony is
-overkill — use the lighter in-conversation `agentic-development` workflow instead.
+Templates live next to this file in `templates/`. Copy the matching template,
+then replace every placeholder; delete sections that don't apply instead of
+writing "N/A".
 
-## 0. Set up the spec directory
+For a bug fix or a small, low-ambiguity change, use `agentic-development`
+instead; this ceremony would be overhead.
 
-1. Derive a short kebab-case slug from the feature name.
-2. List `specs/` and find the highest existing numeric prefix (`NNN-`); the new
-   directory is `specs/<NNN+1>-<slug>/`, zero-padded to 3 digits. First spec is `001-`.
-3. If `specs/<NNN>-<slug>/` already has partial artifacts (an in-progress SDD),
-   resume from the latest incomplete stage — read what exists rather than
-   restarting it.
+## Layout
+
+```text
+.specify/memory/constitution.md      # project principles, once per repo
+specs/NNN-short-name/
+├── spec.md                          # specify, clarify
+├── checklists/requirements.md       # spec quality checklist
+├── plan.md                          # plan
+├── research.md                      # plan, phase 0
+├── data-model.md                    # plan, phase 1 (if data is involved)
+├── contracts/                       # plan, phase 1 (if external interfaces)
+├── quickstart.md                    # plan, phase 1
+└── tasks.md                         # tasks, then converge appends
+```
+
+These paths match spec-kit, so a repo already using `specify init` works
+as-is. If `specs/NNN-*/` partially exists for this feature, resume at the
+first incomplete stage.
+
+## 0. Constitution (once per project)
+
+If `.specify/memory/constitution.md` is missing, create it from
+`templates/constitution.md`: fill the project name, keep the default
+articles, adjust them to the repo's actual stack and conventions, and show it
+to the user for approval. Later amendments bump its semantic version
+(MAJOR: removed or redefined principle, MINOR: added principle, PATCH:
+wording) and update `Last Amended`.
+
+Every later stage checks against the constitution. A conflict is CRITICAL:
+change the spec, plan, or tasks, or amend the constitution explicitly. Never
+silently ignore a principle.
 
 ## 1. Specify → spec.md
 
-Write the problem in terms of WHAT and WHY, never HOW: no tech stack, no file
-names, no implementation detail — that belongs in the plan.
+1. Name the feature in 2–4 words, kebab-case (`user-auth`,
+   `fix-payment-timeout`). Next number = highest `specs/NNN-` + 1, 3 digits.
+   If on the default branch, create branch `NNN-short-name`.
+2. Fill `templates/spec.md`. Rules:
+   - WHAT and WHY only. No languages, frameworks, databases, APIs, or code
+     structure.
+   - User stories are prioritized (P1, P2, …) and each is **independently
+     testable**: shipping only P1 is a viable MVP.
+   - Every FR-### is testable. Every SC-### is measurable and
+     technology-agnostic ("checkout completes in under 3 minutes", not "API
+     under 200 ms").
+   - Capture the non-functional requirements the constitution cares about:
+     expected scale and growth, who may do what (authorization), sensitive
+     data, failure behaviour.
+   - Make informed guesses for anything with a reasonable default and record
+     them under Assumptions. Use `[NEEDS CLARIFICATION: question]` only when
+     the choice changes scope, security/privacy, or UX and no default
+     exists. **Maximum 3**, prioritized scope > security/privacy > UX >
+     technical.
+3. Write `checklists/requirements.md` from
+   `templates/requirements-checklist.md`, evaluate every item, fix the
+   spec, and re-evaluate (max 3 passes). Leave remaining failures noted in
+   the checklist.
 
-Sections: Overview, User stories, Functional requirements (numbered, each one
-independently testable), Non-goals, Open questions.
+## 2. Clarify (before planning)
 
-Ask the user only about ambiguities that would change scope; mark anything
-else assumed as an explicit assumption in the doc rather than blocking on it.
+Scan the spec for gaps across: scope and out-of-scope, roles, entities and
+lifecycle, data volume and scale, error/empty states, performance,
+reliability, observability, security and privacy, external dependencies and
+their failure modes, edge cases and concurrency, ambiguous adjectives
+("fast", "secure", "robust").
 
-**Done when:** every functional requirement is numbered and testable, and no
-open question left in the doc would change scope if answered differently.
+Ask at most **5** questions, **one at a time** (use `AskUserQuestion` when
+available), only where the answer changes architecture, data model, tasks,
+tests, or security. Each question leads with your recommended option and why.
+After each answer:
 
-**Checkpoint:** show the user spec.md. Get explicit approval before writing
-plan.md — a lack of objection is not approval; ask directly.
+- append `- Q: … → A: …` under `## Clarifications` / `### Session YYYY-MM-DD`;
+- apply it to the right section (requirement, story, entity, success
+  criterion, edge case), replacing any contradicted text;
+- save the spec, and re-tick `checklists/requirements.md`.
 
-## 2. Plan → plan.md
+If nothing material is ambiguous, say so and move on. The user may skip
+this stage; warn that rework risk goes up.
 
-Read spec.md plus the repo's actual conventions (architecture docs, existing
-similar features, stack, test setup) before writing this.
+**Checkpoint:** show spec.md and the checklist status. Get explicit approval
+before planning; silence is not approval.
 
-Sections: Technical approach, Affected components/files, Data/API changes,
-Testing strategy, Risks and tradeoffs, and a requirement-coverage table mapping
-each spec.md requirement to the plan section that satisfies it.
+## 3. Plan → plan.md + design artifacts
 
-Technical approach follows the Design rules in `agentic-development` §2:
-name the patterns used, where domain logic vs. adapters live, and how the
-change holds under load (indexes, pagination, queues, timeouts).
+Read spec.md, the constitution, and the repo's real architecture and similar
+features. Fill `templates/plan.md`:
 
-Testing strategy names the unit test framework already in the repo and lists
-which units get tests, per the `tdd` skill's testing policy. Unit tests only;
-no integration or end-to-end tests.
+1. **Technical Context**: language, dependencies, storage, test framework,
+   platform, performance goals, constraints, scale. Unknowns are
+   `NEEDS CLARIFICATION`.
+2. **Constitution Check** (gate): evaluate every article. An unjustified
+   violation stops the plan; a justified one goes in Complexity Tracking.
+3. **Phase 0 → research.md**: resolve every unknown and each dependency or
+   integration choice as *Decision / Rationale / Alternatives considered*.
+   Use research sub-agents for independent unknowns. A decision that is hard
+   to reverse also gets an ADR in `docs/adr/` when the repo keeps them.
+4. **Phase 1 → design**:
+   - `data-model.md`: entities, fields, validation rules, relationships,
+     state transitions, and the indexes the access patterns need;
+   - `contracts/`: only if the feature exposes an interface (HTTP endpoints,
+     events, CLI, public library API), including auth requirements and
+     error shapes;
+   - `quickstart.md`: runnable steps that show each user story working by
+     hand, with expected outcomes. It is a run guide, not a test suite.
+5. **Architecture and Security sections**: name the patterns used and the
+   force each resolves, where domain logic vs. adapters live, how the design
+   holds under the stated scale, and the security surface (entry points,
+   callers, trust boundaries, sensitive data).
+6. **Testing strategy**: the unit-test framework already in the repo and the
+   list of units that get tests, per the `tdd` skill's testing policy. No
+   integration, contract, or end-to-end tests.
+7. Re-run the Constitution Check after design.
 
-Risks and tradeoffs include the security surface: entry points, callers,
-and inputs crossing a trust boundary.
+**Checkpoint:** show plan.md with the generated artifacts. Get explicit
+approval before writing tasks.
 
-**Done when:** every requirement in spec.md's coverage table maps to a
-concrete part of the plan — no requirement left unaddressed.
+## 4. Tasks → tasks.md
 
-**Checkpoint:** show the user plan.md. Get explicit approval before writing
-tasks.md.
+Fill `templates/tasks.md`. Every task uses exactly this format:
 
-## 3. Tasks → tasks.md
+```text
+- [ ] T012 [P] [US1] Create Order entity in src/orders/domain/order.py
+```
 
-Decompose plan.md into small, ordered, independently verifiable tasks as a
-checklist. Each task: id, one-sentence description, files it touches,
-dependencies on other task ids, the concrete check that proves it done, and a
-checkbox.
+checkbox, sequential ID, `[P]` only if it touches different files and has no
+incomplete dependency, `[USn]` on user-story tasks only, and an exact file
+path.
 
-For tasks covering logic plan.md marks for testing, the done-condition is a
-named unit test written first (file and case, not just "tests pass"). For
-the rest (wiring, adapters, config, docs), the done-condition is a passing
-type-check/lint/build or an observable behaviour; say which.
+Phases: **Setup** → **Foundational** (blocks all stories) → **one phase per
+user story** in priority order, each with its Goal, Independent Test, and
+Checkpoint → **Polish** (cross-cutting work and the review in §7).
 
-Prefer vertical slices over horizontal layers. Mark tasks with no dependency
-on each other as parallelizable.
+- Within a story: unit tests (where the plan lists them) → domain → ports
+  and adapters → entry points.
+- Unit-test tasks name the test file and case and come before the code they
+  cover. Other tasks are done when type-check/lint pass and the story's
+  Independent Test holds.
+- Quote data-model constraints (max length, required, enum values) verbatim
+  in the task, so they are not left to implementation-time guesswork.
+- A task must be specific enough to complete without other context.
 
-**Done when:** every plan.md section maps to at least one task, and every
-task's done-condition is something you can actually run or observe, not a
-vague description.
+## 5. Analyze (read-only gate)
 
-**Checkpoint:** show the user tasks.md. Get explicit approval before
-implementing.
+Before implementing, cross-check spec.md, plan.md, and tasks.md **without
+editing them**:
 
-## 4. Implement
+- **Duplication**: near-identical requirements.
+- **Ambiguity**: vague adjectives, leftover placeholders.
+- **Underspecification**: stories without acceptance criteria, tasks naming
+  files the plan doesn't.
+- **Constitution**: any conflict is CRITICAL.
+- **Coverage**: requirements with no task, tasks with no requirement,
+  scale/security success criteria with no task.
+- **Inconsistency**: terminology drift, entities in one file but not the
+  other, contradictory ordering.
 
-Work tasks in dependency order, one at a time:
+Report a findings table (ID, category, severity, location, recommendation),
+a requirement → task coverage table, and coverage %. CRITICAL findings must
+be fixed before implementing; propose the edits and apply them only with
+the user's approval.
 
-1. Mark the task in-progress.
-2. If the task's done-condition is a test, invoke the `tdd` skill and run its
-   red-green-refactor loop for that one task, following the repo's existing
-   patterns. Otherwise (config, docs, etc.), make the change directly.
-3. Run the task's stated check. Never check a box without having actually run it.
-4. Check the box in tasks.md.
+**Checkpoint:** show tasks.md and the analysis. Get explicit approval to
+implement.
 
-If reality diverges from plan.md mid-implementation — a needed file the plan
-didn't foresee, a different approach — update plan.md to match and note the
-deviation there. Do not let the artifact silently drift out of sync with the
-code.
+## 6. Implement ⇄ Converge
 
-## 5. Close out
+**Gate**: if any file in `checklists/` has unchecked items, show the counts
+and ask whether to proceed.
 
-Once every task is checked, run the review in `agentic-development` §4
-(including `owasp-check` where it applies) over the whole change and fix
-Critical/High findings. Then summarize what changed against spec.md's
-requirements, list anything deferred or descoped, report the verification
-actually performed (tests/build/lint run and their results, OWASP result), and leave
-spec.md, plan.md, and tasks.md in the repo as the record of the change.
+**Implement** phase by phase, in dependency order:
+
+- Follow the `agentic-development` Design and Implement rules.
+- Run unit-test tasks with the `tdd` skill's red-green-refactor loop.
+- Tasks on the same file run sequentially; `[P]` tasks may run in parallel.
+- Mark each finished task `[X]` in tasks.md right away. Halt on a failing
+  sequential task and report it.
+- At each story checkpoint, run the unit suite, type-check, and lint, and
+  walk the story's quickstart steps. After US1, offer to stop and ship the MVP.
+- If reality diverges from plan.md (an unforeseen file, a better approach),
+  update plan.md and note the deviation.
+
+**Converge** after each implement pass: assess the code (not the checkboxes)
+against every FR, SC, acceptance scenario, plan decision, and constitution
+article. Classify each gap as `missing`, `partial`, `contradicts`, or
+`unrequested`. Append them to the end of tasks.md as a new
+`## Phase N: Convergence` section, continuing the IDs:
+
+```text
+- [ ] T042 Enforce per-tenant filter on order listing per FR-007 (contradicts)
+```
+
+Append only: never edit spec.md or plan.md here, never renumber or delete
+tasks. If nothing is left, leave tasks.md untouched and report
+**Converged**. Repeat implement → converge until it converges.
+
+## 7. Review and close out
+
+1. Run the review in `agentic-development` §4 over the whole feature diff,
+   including `owasp-check`. Critical/High findings and correctness bugs
+   become a new Convergence phase (source-ref like `OWASP A01`) and go
+   through implement again.
+2. Report: requirements satisfied (FR/SC → evidence), patterns and
+   trade-offs, checks run with results, OWASP result, remaining
+   Medium/Low risks, anything deferred.
+3. Leave all artifacts in the repo as the record. Ship with `ship-pr`.
