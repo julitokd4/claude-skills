@@ -121,8 +121,9 @@ features. Fill `templates/plan.md`:
      error shapes;
    - `quickstart.md`: runnable steps that show each user story working by
      hand, with expected outcomes. It is a run guide, not a test suite.
-5. **Architecture and Security sections**: name the patterns used and the
-   force each resolves, where domain logic vs. adapters live, how the design
+5. **Architecture and Security sections**: what existing code, stdlib, or
+   installed dependency is reused and what is deliberately not built; the
+   patterns used and the force each resolves; where domain logic vs. adapters live, how the design
    holds under the stated scale, and the security surface (entry points,
    callers, trust boundaries, sensitive data).
 6. **Testing strategy**: the unit-test framework already in the repo and the
@@ -157,6 +158,8 @@ Checkpoint → **Polish** (cross-cutting work and the review in §7).
 - Quote data-model constraints (max length, required, enum values) verbatim
   in the task, so they are not left to implementation-time guesswork.
 - A task must be specific enough to complete without other context.
+- No task without a requirement or plan decision behind it: nothing
+  speculative or "for later".
 
 ## 5. Analyze (read-only gate)
 
@@ -220,5 +223,6 @@ tasks. If nothing is left, leave tasks.md untouched and report
    through implement again.
 2. Report: requirements satisfied (FR/SC → evidence), patterns and
    trade-offs, checks run with results, OWASP result, remaining
-   Medium/Low risks, anything deferred.
+   Medium/Low risks, anything deferred, and a **Not checked** line for
+   what mattered but could not be verified.
 3. Leave all artifacts in the repo as the record. Ship with `ship-pr`.

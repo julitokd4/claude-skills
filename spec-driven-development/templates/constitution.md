@@ -51,6 +51,17 @@ Structured logs carry correlation IDs. Errors are explicit and typed,
 handled at the layer that can act on them, and logged with context.
 Configuration is typed and validated at startup.
 
+### VIII. Least New Code
+
+Write only what the requirements need, and reuse before writing: existing
+code in this repo, then the standard library or platform, then an installed
+dependency, and only then new code. No dependency for a few lines, no
+options or config nobody asked for, no "for later" code. A change is
+complete only when every caller, test, and fixture it affects is updated.
+A deliberate shortcut carries `TODO(<limit>; upgrade when <trigger>)`.
+This never removes structure, validation, error handling that prevents data
+loss, security, or accessibility.
+
 ## Technology Constraints
 
 [STACK_AND_PLATFORM: languages, frameworks, storage, hosting this project
@@ -61,7 +72,8 @@ commits to; remove this line if none are fixed]
 A feature is done when its unit tests, type check, lint, and formatting
 pass; analyze reports no CRITICAL findings; converge reports Converged; and
 the OWASP check has no open Critical or High findings. Trade-offs and
-stopgaps are written in plan.md, an ADR, or a `TODO(reason)`.
+stopgaps are written in plan.md, an ADR, or a
+`TODO(<limit>; upgrade when <trigger>)` in code.
 
 ## Governance
 
