@@ -1,0 +1,800 @@
+<title>Virtual Waitlist Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with wide breakouts for diagrams, screens and tables. */
+:root {
+  --bg: #FBF5EC;
+  --surface: #F3E7D6;
+  --surface-2: #FFFDF9;
+  --ink: #3A2A1F;
+  --ink-2: #5C4636;
+  --muted: #7D6552;
+  --line: #E3D2BB;
+  --accent: #B04E28;
+  --accent-soft: #F6DCCB;
+  --amber: #9A6510;
+  --amber-soft: #F8E6C2;
+  --sage: #4D6E45;
+  --sage-soft: #DFEAD8;
+  --rose: #A13A33;
+  --rose-soft: #F5D7D2;
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: 1.6rem;
+  --step-3: 2.4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1E1813; --surface: #2A211A; --surface-2: #241C16;
+    --ink: #F4E8D8; --ink-2: #E2D0BB; --muted: #BFA88F; --line: #45372B;
+    --accent: #EE9466; --accent-soft: #4A2A1C;
+    --amber: #EBB65A; --amber-soft: #43331A;
+    --sage: #A5C796; --sage-soft: #2B3826;
+    --rose: #EE8C80; --rose-soft: #4A2522;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1E1813; --surface: #2A211A; --surface-2: #241C16;
+  --ink: #F4E8D8; --ink-2: #E2D0BB; --muted: #BFA88F; --line: #45372B;
+  --accent: #EE9466; --accent-soft: #4A2A1C;
+  --amber: #EBB65A; --amber-soft: #43331A;
+  --sage: #A5C796; --sage-soft: #2B3826;
+  --rose: #EE8C80; --rose-soft: #4A2522;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.65;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1080px; margin: 0 auto; padding-block: 48px 96px; display: grid; gap: 64px; }
+.prose { max-width: 68ch; }
+section { display: grid; gap: 20px; min-width: 0; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.2; text-wrap: balance; margin: 0; color: var(--ink); }
+h1 { font-size: var(--step-3); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-2); font-weight: 700; }
+h3 { font-size: var(--step-1); font-weight: 600; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 1.25em; display: grid; gap: 6px; }
+strong { font-weight: 700; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--surface); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 0.9rem; line-height: 1.55; }
+.eyebrow { font-size: var(--step--1); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.lede { font-size: var(--step-1); color: var(--ink-2); max-width: 60ch; }
+.muted { color: var(--muted); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: grid; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: var(--step--1); }
+.meta span strong { color: var(--ink-2); }
+
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+nav.toc a { text-decoration: none; color: var(--ink-2); background: var(--surface); padding: 4px 12px; border-radius: 999px; font-size: var(--step--1); }
+nav.toc a:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* Decisions */
+.decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.decision { border-top: 3px solid var(--accent); padding-top: 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.decision h3 { font-size: 1.1rem; }
+.decision p { color: var(--ink-2); font-size: 0.98rem; }
+
+/* State pills */
+.pill { display: inline-block; font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; letter-spacing: 0.02em; white-space: nowrap; }
+.pill.waiting { background: var(--amber-soft); color: var(--amber); }
+.pill.notified { background: var(--accent-soft); color: var(--accent); }
+.pill.seated { background: var(--sage-soft); color: var(--sage); }
+.pill.no_show { background: var(--rose-soft); color: var(--rose); }
+.pill.cancelled { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+
+/* Example screens */
+.screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; align-items: start; }
+.phone { background: var(--surface-2); border: 1px solid var(--line); border-radius: 28px; padding: 22px 18px; display: grid; gap: 14px; max-width: 320px; width: 100%; justify-self: center; box-shadow: 0 1px 0 var(--line); }
+.phone .bar { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--muted); }
+.phone h4 { margin: 0; font-family: var(--font-display); font-size: 1.3rem; }
+.field { display: grid; gap: 4px; }
+.field label, .field .lbl { font-size: 0.82rem; font-weight: 700; color: var(--ink-2); }
+.fake-input { border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--bg); color: var(--ink); font-size: 0.98rem; }
+.stepper { display: flex; align-items: center; gap: 12px; }
+.stepper span.btn { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 1.2rem; color: var(--ink-2); }
+.stepper strong { font-size: 1.3rem; min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.consent { display: flex; gap: 8px; font-size: 0.84rem; color: var(--ink-2); align-items: start; }
+.box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--accent); background: var(--accent); flex: none; margin-top: 2px; position: relative; }
+.box::after { content: ""; position: absolute; left: 4px; top: 0px; width: 5px; height: 10px; border: solid var(--bg); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.cta { background: var(--accent); color: var(--bg); text-align: center; border-radius: 12px; padding: 12px; font-weight: 700; }
+.cta.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.bignum { font-family: var(--font-display); font-size: 3.6rem; line-height: 1; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.statline { display: flex; gap: 16px; flex-wrap: wrap; color: var(--ink-2); font-size: 0.95rem; }
+.screen-cap { font-size: var(--step--1); color: var(--muted); text-align: center; margin-top: 8px; }
+
+.board { background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; min-width: 0; }
+.board-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.board-head strong { font-family: var(--font-display); font-size: 1.15rem; }
+.board-head .live { color: var(--sage); font-weight: 700; font-size: 0.85rem; }
+.board-scroll { overflow-x: auto; }
+.board table { min-width: 640px; }
+.actions { display: flex; gap: 6px; }
+.actions span { border: 1.5px solid var(--line); border-radius: 8px; padding: 2px 10px; font-size: 0.82rem; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.actions span.primary { border-color: var(--accent); color: var(--accent); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--surface); font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; }
+.method { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; color: var(--accent); }
+
+/* Figures */
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.fig-scroll { overflow-x: auto; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.fig-scroll svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 0.92rem; color: var(--muted); max-width: 72ch; }
+
+svg text { font-family: var(--font-body); fill: var(--ink); }
+svg .t-title { font-weight: 700; font-size: 14px; }
+svg .t-sub { font-size: 11.5px; fill: var(--muted); }
+svg .t-lbl { font-size: 12px; fill: var(--ink-2); }
+svg .t-mono { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-2); }
+svg .t-acc { fill: var(--accent); font-weight: 700; }
+svg .node { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .node-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+svg .inner { fill: var(--surface-2); stroke: var(--line); stroke-width: 1; }
+svg .edge { stroke: var(--ink-2); stroke-width: 1.5; fill: none; }
+svg .edge-acc { stroke: var(--accent); stroke-width: 2; fill: none; }
+svg .edge-ret { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+svg .life { stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 3 4; }
+svg .ah { fill: var(--ink-2); }
+svg .ah-acc { fill: var(--accent); }
+svg .ah-ret { fill: var(--muted); }
+svg .st-waiting { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 1.5; }
+svg .st-notified { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+svg .st-seated { fill: var(--sage-soft); stroke: var(--sage); stroke-width: 1.5; }
+svg .st-noshow { fill: var(--rose-soft); stroke: var(--rose); stroke-width: 1.5; }
+svg .st-cancel { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; }
+svg .term { fill: none; stroke-width: 1; }
+svg .dot { fill: var(--ink); }
+svg .divider { stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 6 5; }
+
+/* Schema cards */
+.schema { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.tbl { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; }
+.tbl h3 { font-family: var(--font-mono); font-size: 0.98rem; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.tbl dl { margin: 0; padding: 8px 14px 12px; display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 4px 14px; font-size: 0.9rem; }
+.tbl dt { font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink); }
+.tbl dd { margin: 0; color: var(--muted); }
+.tbl .idx { border-top: 1px dashed var(--line); padding: 10px 14px 12px; font-size: 0.86rem; color: var(--ink-2); display: grid; gap: 4px; }
+.tbl .idx code { font-size: 0.8rem; }
+
+.callout { background: var(--amber-soft); border-radius: 10px; padding: 14px 18px; color: var(--ink); max-width: 76ch; display: grid; gap: 6px; }
+.callout strong { color: var(--amber); }
+
+.phases { list-style: none; padding: 0; display: grid; gap: 14px; counter-reset: phase; }
+.phases li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; counter-increment: phase; }
+.phases li::before { content: counter(phase); width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; display: grid; place-items: center; }
+.phases li div { display: grid; gap: 2px; }
+
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+.two-col > div { display: grid; gap: 12px; align-content: start; min-width: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  nav.toc a { transition: background 0.15s, color 0.15s; }
+}
+</style>
+
+<main>
+  <header class="top">
+    <div class="eyebrow">Restaurant app · Design proposal</div>
+    <h1>Virtual Waitlist</h1>
+    <p class="lede">Guests scan a QR code at the door, enter their name, phone, email and party size, and get a place in line. Hosts run the line from a live board. This page covers the guest flow, the host board, the data, the API, and the background jobs that send the texts.</p>
+    <div class="meta">
+      <span><strong>Scope</strong> guest join + host board</span>
+      <span><strong>Background jobs</strong> Celery</span>
+      <span><strong>Restaurants</strong> 8+, one list each</span>
+      <span><strong>Date</strong> Oct 21, 2026</span>
+    </div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#decisions">Key decisions</a>
+      <a href="#screens">Screens</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#lifecycle">Lifecycle</a>
+      <a href="#flows">Flows</a>
+      <a href="#data">Data model</a>
+      <a href="#api">API</a>
+      <a href="#jobs">Background jobs</a>
+      <a href="#failures">Failure modes</a>
+      <a href="#code">Code layout</a>
+      <a href="#plan">Plan</a>
+    </nav>
+  </header>
+
+  <section id="decisions">
+    <h2>Key decisions</h2>
+    <div class="decisions">
+      <div class="decision">
+        <h3>Postgres holds the line</h3>
+        <p>The order of the line and each party's status live in <code>waitlist_entries</code>. Celery never holds waitlist state, so a worker restart can't lose a guest's place.</p>
+      </div>
+      <div class="decision">
+        <h3>Texts go through an outbox</h3>
+        <p>A status change and its "send a text" event are written in one transaction. A relay hands the events to Celery. No text is lost or sent for a change that rolled back.</p>
+      </div>
+      <div class="decision">
+        <h3>Live board without polling</h3>
+        <p>Postgres <code>NOTIFY</code> fires on commit. Each API process listens once and pushes updates to the host boards over server-sent events.</p>
+      </div>
+      <div class="decision">
+        <h3>Every row belongs to a restaurant</h3>
+        <p>Every table and query is scoped by <code>restaurant_id</code>. Hosts only see restaurants they're members of. Settings like party size and grace period are per restaurant.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="screens">
+    <h2>What guests and hosts see</h2>
+    <p class="prose muted">Example screens with sample data, to show the fields and states. Final visuals come from the frontend design.</p>
+    <div class="screens">
+      <div>
+        <div class="phone" role="img" aria-label="Example join form: name, phone, email, party size stepper set to 4, SMS consent checked, and a Join the waitlist button. Header shows 3 parties ahead, about 25 minutes.">
+          <div class="bar"><span>Olive &amp; Ember · Downtown</span><span>Open</span></div>
+          <h4>Join the waitlist</h4>
+          <div class="statline"><span><strong>3</strong> parties ahead</span><span>about <strong>25 min</strong></span></div>
+          <div class="field"><span class="lbl">Name</span><div class="fake-input">Maya R.</div></div>
+          <div class="field"><span class="lbl">Mobile phone</span><div class="fake-input mono">(415) 555-0142</div></div>
+          <div class="field"><span class="lbl">Email</span><div class="fake-input">maya@example.com</div></div>
+          <div class="field"><span class="lbl">Party size</span>
+            <div class="stepper"><span class="btn">−</span><strong>4</strong><span class="btn">+</span><span class="muted" style="font-size:0.82rem">up to 12</span></div>
+          </div>
+          <div class="consent"><span class="box"></span><span>Text me when my table is ready. Reply STOP to opt out.</span></div>
+          <div class="cta">Join the waitlist</div>
+        </div>
+        <p class="screen-cap">1 · After scanning the QR code</p>
+      </div>
+      <div>
+        <div class="phone" role="img" aria-label="Example status page: You're number 4 in line, about 25 minutes, status Waiting, party of 4, and a Leave the waitlist button.">
+          <div class="bar"><span>Olive &amp; Ember · Downtown</span><span>Updated just now</span></div>
+          <h4>You're on the list, Maya</h4>
+          <div><div class="muted" style="font-size:0.9rem">Your place in line</div><div class="bignum">#4</div></div>
+          <div class="statline"><span class="pill waiting">Waiting</span><span>about 25 min</span><span>party of 4</span></div>
+          <p class="muted" style="font-size:0.92rem">We'll text (415) ···-0142 when your table is ready. You'll have 10 minutes to get to the host stand.</p>
+          <div class="cta ghost">Leave the waitlist</div>
+        </div>
+        <p class="screen-cap">2 · Status page, linked in the confirmation text</p>
+      </div>
+    </div>
+
+    <div class="board" role="img" aria-label="Example host board for Olive and Ember Downtown listing five parties with their party size, wait time, status and action buttons.">
+      <div class="board-head"><strong>Olive &amp; Ember · Downtown — waitlist</strong><span class="live">● Live · 5 parties</span></div>
+      <div class="board-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Guest</th><th>Party</th><th>Waited</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Daniel K. <span class="muted mono">···-0198</span></td><td class="num">2</td><td class="num">31 min</td><td><span class="pill notified">Notified · 6:12 left</span></td><td><div class="actions"><span class="primary">Seat</span><span>No-show</span></div></td></tr>
+            <tr><td class="num">2</td><td>Priya S. <span class="muted mono">···-0571</span></td><td class="num">6</td><td class="num">24 min</td><td><span class="pill waiting">Waiting</span></td><td><div class="actions"><span class="primary">Notify</span><span>Seat</span><span>Remove</span></div></td></tr>
+            <tr><td class="num">3</td><td>Tom &amp; Ana <span class="muted mono">···-0333</span></td><td class="num">3</td><td class="num">17 min</td><td><span class="pill waiting">Waiting</span></td><td><div class="actions"><span class="primary">Notify</span><span>Seat</span><span>Remove</span></div></td></tr>
+            <tr><td class="num">4</td><td>Maya R. <span class="muted mono">···-0142</span></td><td class="num">4</td><td class="num">2 min</td><td><span class="pill waiting">Waiting</span></td><td><div class="actions"><span class="primary">Notify</span><span>Seat</span><span>Remove</span></div></td></tr>
+            <tr><td class="num">5</td><td>Lee W. <span class="muted mono">···-0907</span></td><td class="num">2</td><td class="num">1 min</td><td><span class="pill waiting">Waiting</span></td><td><div class="actions"><span class="primary">Notify</span><span>Seat</span><span>Remove</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="screen-cap">3 · Host board on the tablet at the host stand. Phone numbers are masked.</p>
+  </section>
+
+  <section id="architecture">
+    <h2>Architecture</h2>
+    <p class="prose">The API's request path only touches Postgres. Everything slow or external (texts, emails, timers) happens after the commit, in the Celery worker. Updates for the board come from Postgres too, so every API process sees the same changes without a shared in-memory store.</p>
+    <figure>
+      <div class="fig-scroll">
+        <svg viewBox="0 0 1160 470" role="img" aria-label="Architecture: the guest phone and host board talk to the Next.js server, which calls FastAPI. FastAPI writes the entry and an outbox row to Postgres in one transaction. An outbox relay polls Postgres and enqueues tasks in Redis; the Celery worker consumes them, sends SMS and email, and reads and writes Postgres. Postgres NOTIFY on commit feeds FastAPI's SSE hub, which streams live updates through Next.js to the host board." style="min-width: 860px">
+          <defs>
+            <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker>
+            <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-acc"/></marker>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-ret"/></marker>
+          </defs>
+
+          <!-- Column A: clients -->
+          <rect x="16" y="40" width="120" height="64" rx="10" class="node"/>
+          <text x="76" y="66" text-anchor="middle" class="t-title">Guest phone</text>
+          <text x="76" y="86" text-anchor="middle" class="t-sub">scanned the QR</text>
+          <rect x="16" y="316" width="120" height="64" rx="10" class="node"/>
+          <text x="76" y="342" text-anchor="middle" class="t-title">Host board</text>
+          <text x="76" y="362" text-anchor="middle" class="t-sub">tablet at the stand</text>
+
+          <!-- Column B: Next.js -->
+          <rect x="232" y="40" width="140" height="340" rx="10" class="node"/>
+          <text x="302" y="66" text-anchor="middle" class="t-title">Next.js</text>
+          <text x="302" y="86" text-anchor="middle" class="t-sub">calls the API</text>
+          <text x="302" y="102" text-anchor="middle" class="t-sub">server-side only</text>
+          <rect x="246" y="160" width="112" height="30" rx="6" class="inner"/>
+          <text x="302" y="180" text-anchor="middle" class="t-mono">Server Actions</text>
+          <rect x="246" y="200" width="112" height="30" rx="6" class="inner"/>
+          <text x="302" y="220" text-anchor="middle" class="t-mono">SSE proxy</text>
+
+          <!-- Column C: FastAPI -->
+          <rect x="468" y="40" width="160" height="340" rx="10" class="node"/>
+          <text x="548" y="66" text-anchor="middle" class="t-title">FastAPI</text>
+          <text x="548" y="86" text-anchor="middle" class="t-sub">stateless, N processes</text>
+          <rect x="482" y="120" width="132" height="30" rx="6" class="inner"/>
+          <text x="548" y="140" text-anchor="middle" class="t-mono">waitlist router</text>
+          <rect x="482" y="158" width="132" height="30" rx="6" class="inner"/>
+          <text x="548" y="178" text-anchor="middle" class="t-mono">WaitlistService</text>
+          <rect x="482" y="232" width="132" height="44" rx="6" class="inner"/>
+          <text x="548" y="251" text-anchor="middle" class="t-mono">SSE hub</text>
+          <text x="548" y="267" text-anchor="middle" class="t-sub">1 LISTEN / process</text>
+
+          <!-- Column D: Postgres -->
+          <rect x="724" y="40" width="170" height="190" rx="10" class="node-acc"/>
+          <text x="809" y="66" text-anchor="middle" class="t-title">Postgres</text>
+          <text x="809" y="84" text-anchor="middle" class="t-sub">source of truth</text>
+          <rect x="738" y="98" width="142" height="26" rx="5" class="inner"/>
+          <text x="809" y="115" text-anchor="middle" class="t-mono">waitlist_entries</text>
+          <rect x="738" y="130" width="142" height="26" rx="5" class="inner"/>
+          <text x="809" y="147" text-anchor="middle" class="t-mono t-acc">outbox_events</text>
+          <rect x="738" y="162" width="142" height="26" rx="5" class="inner"/>
+          <text x="809" y="179" text-anchor="middle" class="t-mono">deliveries</text>
+
+          <!-- Column E: async side -->
+          <rect x="990" y="40" width="150" height="64" rx="10" class="node-acc"/>
+          <text x="1065" y="66" text-anchor="middle" class="t-title">Outbox relay</text>
+          <text x="1065" y="86" text-anchor="middle" class="t-sub">polls every 1s</text>
+          <rect x="990" y="150" width="150" height="56" rx="10" class="node"/>
+          <text x="1065" y="174" text-anchor="middle" class="t-title">Redis</text>
+          <text x="1065" y="193" text-anchor="middle" class="t-sub">Celery broker</text>
+          <rect x="990" y="256" width="150" height="64" rx="10" class="node"/>
+          <text x="1065" y="282" text-anchor="middle" class="t-title">Celery worker</text>
+          <text x="1065" y="302" text-anchor="middle" class="t-sub">notifications · waitlist</text>
+          <rect x="990" y="370" width="150" height="56" rx="10" class="node"/>
+          <text x="1065" y="394" text-anchor="middle" class="t-title">SMS · email</text>
+          <text x="1065" y="413" text-anchor="middle" class="t-sub">provider adapters</text>
+
+          <!-- Guest path -->
+          <line x1="136" y1="70" x2="230" y2="70" class="edge" marker-end="url(#a)"/>
+          <text x="184" y="62" text-anchor="middle" class="t-lbl">submit form</text>
+          <line x1="232" y1="92" x2="138" y2="92" class="edge-ret" marker-end="url(#ar)"/>
+          <text x="184" y="110" text-anchor="middle" class="t-lbl">status · poll</text>
+          <line x1="372" y1="70" x2="466" y2="70" class="edge" marker-end="url(#a)"/>
+          <text x="420" y="62" text-anchor="middle" class="t-lbl">POST /entries</text>
+          <line x1="628" y1="70" x2="722" y2="70" class="edge-acc" marker-end="url(#aa)"/>
+          <text x="676" y="62" text-anchor="middle" class="t-lbl t-acc">entry + outbox</text>
+          <text x="676" y="88" text-anchor="middle" class="t-sub">one transaction</text>
+
+          <!-- Outbox path -->
+          <line x1="894" y1="70" x2="988" y2="70" class="edge-acc" marker-end="url(#aa)"/>
+          <text x="942" y="62" text-anchor="middle" class="t-lbl t-acc">poll outbox</text>
+          <line x1="1065" y1="104" x2="1065" y2="148" class="edge-acc" marker-end="url(#aa)"/>
+          <text x="1075" y="131" class="t-lbl t-acc">enqueue</text>
+          <line x1="1065" y1="206" x2="1065" y2="254" class="edge" marker-end="url(#a)"/>
+          <text x="1075" y="235" class="t-lbl">consume</text>
+          <line x1="1065" y1="320" x2="1065" y2="368" class="edge" marker-end="url(#a)"/>
+          <text x="1075" y="349" class="t-lbl">send</text>
+          <path d="M990 288 L809 288 L809 232" class="edge" marker-end="url(#a)"/>
+          <text x="900" y="280" text-anchor="middle" class="t-lbl">read entry · log delivery</text>
+
+          <!-- Live updates path -->
+          <line x1="724" y1="206" x2="630" y2="206" class="edge" marker-end="url(#a)"/>
+          <text x="676" y="198" text-anchor="middle" class="t-lbl">NOTIFY</text>
+          <text x="676" y="222" text-anchor="middle" class="t-sub">on commit</text>
+          <line x1="468" y1="330" x2="374" y2="330" class="edge" marker-end="url(#a)"/>
+          <text x="420" y="322" text-anchor="middle" class="t-lbl">SSE events</text>
+          <line x1="232" y1="330" x2="138" y2="330" class="edge" marker-end="url(#a)"/>
+          <text x="184" y="322" text-anchor="middle" class="t-lbl">live updates</text>
+
+          <!-- Host actions -->
+          <line x1="136" y1="356" x2="230" y2="356" class="edge" marker-end="url(#a)"/>
+          <text x="184" y="374" text-anchor="middle" class="t-lbl">notify · seat</text>
+          <line x1="372" y1="356" x2="466" y2="356" class="edge" marker-end="url(#a)"/>
+          <text x="420" y="374" text-anchor="middle" class="t-lbl">host actions</text>
+        </svg>
+      </div>
+      <figcaption>Requests only write to Postgres (left to right, top). The outbox path (terracotta) carries every side effect to Celery after commit. <code>NOTIFY</code> carries every change back to the host boards. Dashed arrows are responses.</figcaption>
+    </figure>
+    <ul class="prose">
+      <li><strong>Why the outbox:</strong> calling <code>task.delay()</code> from the endpoint would block the async event loop on a network call to Redis, and would lose the task if Redis was down or the process crashed between commit and publish. The relay keeps Celery out of the request path completely.</li>
+      <li><strong>Why the SSE proxy:</strong> ADR 0001 keeps the browser from calling the API directly. A Next.js route handler forwards the event stream, so CORS stays off and the host's session cookie stays on the Next.js side.</li>
+    </ul>
+  </section>
+
+  <section id="lifecycle">
+    <h2>Lifecycle of a waitlist entry</h2>
+    <p class="prose">An entry moves through five statuses. The rules live in one pure function in <code>waitlist/domain.py</code>, so they're unit-tested without a database. Any move not drawn here raises <code>InvalidTransitionError</code>, a <code>BusinessRuleError</code> that returns 422.</p>
+    <figure>
+      <div class="fig-scroll">
+        <svg viewBox="0 0 860 330" role="img" aria-label="State machine: join creates a waiting entry. Waiting goes to notified when the host notifies, or straight to seated. Notified goes to seated, or to no-show when the grace timer fires or the host marks it. Waiting and notified both go to cancelled when the guest leaves or the host removes them. Seated, no-show and cancelled are final." style="min-width: 640px">
+          <defs>
+            <marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker>
+          </defs>
+          <circle cx="24" cy="154" r="7" class="dot"/>
+          <line x1="31" y1="154" x2="78" y2="154" class="edge" marker-end="url(#s)"/>
+          <text x="54" y="144" text-anchor="middle" class="t-lbl">join</text>
+
+          <rect x="80" y="130" width="140" height="48" rx="24" class="st-waiting"/>
+          <text x="150" y="159" text-anchor="middle" class="t-title">waiting</text>
+
+          <rect x="360" y="130" width="140" height="48" rx="24" class="st-notified"/>
+          <text x="430" y="159" text-anchor="middle" class="t-title">notified</text>
+
+          <rect x="660" y="40" width="140" height="48" rx="24" class="st-seated"/>
+          <rect x="664" y="44" width="132" height="40" rx="20" class="term" style="stroke: var(--sage)"/>
+          <text x="730" y="69" text-anchor="middle" class="t-title">seated</text>
+
+          <rect x="660" y="220" width="140" height="48" rx="24" class="st-noshow"/>
+          <rect x="664" y="224" width="132" height="40" rx="20" class="term" style="stroke: var(--rose)"/>
+          <text x="730" y="249" text-anchor="middle" class="t-title">no_show</text>
+
+          <rect x="360" y="262" width="140" height="48" rx="24" class="st-cancel"/>
+          <rect x="364" y="266" width="132" height="40" rx="20" class="term" style="stroke: var(--muted)"/>
+          <text x="430" y="291" text-anchor="middle" class="t-title">cancelled</text>
+
+          <line x1="220" y1="154" x2="358" y2="154" class="edge" marker-end="url(#s)"/>
+          <text x="290" y="145" text-anchor="middle" class="t-lbl">host: notify</text>
+
+          <line x1="500" y1="146" x2="658" y2="74" class="edge" marker-end="url(#s)"/>
+          <text x="566" y="100" text-anchor="middle" class="t-lbl">host: seat</text>
+
+          <line x1="500" y1="162" x2="658" y2="236" class="edge" marker-end="url(#s)"/>
+          <text x="604" y="184" text-anchor="middle" class="t-lbl">grace timer · host</text>
+
+          <path d="M150 130 C150 36, 480 22, 658 58" class="edge" marker-end="url(#s)"/>
+          <text x="330" y="40" text-anchor="middle" class="t-lbl">host: seat directly</text>
+
+          <path d="M150 178 C150 268, 240 286, 358 286" class="edge" marker-end="url(#s)"/>
+          <text x="178" y="262" text-anchor="start" class="t-lbl">leave · remove</text>
+
+          <line x1="430" y1="178" x2="430" y2="260" class="edge" marker-end="url(#s)"/>
+          <text x="440" y="224" class="t-lbl">leave · remove</text>
+        </svg>
+      </div>
+      <figcaption>Double borders mark final statuses. Only <span class="pill waiting">waiting</span> and <span class="pill notified">notified</span> count as "active": they appear on the board and hold a place in line.</figcaption>
+    </figure>
+  </section>
+
+  <section id="flows">
+    <h2>Two flows, step by step</h2>
+    <figure>
+      <h3>Joining the list</h3>
+      <div class="fig-scroll">
+        <svg viewBox="0 0 880 430" role="img" aria-label="Join sequence: the guest submits the form with an idempotency key; Next.js posts to FastAPI; FastAPI inserts the entry and an outbox row in one transaction and returns the token and position; the guest is redirected to the status page. Later the relay polls the outbox, enqueues send_join_confirmation, and the worker sends the confirmation text." style="min-width: 760px">
+          <defs>
+            <marker id="q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker>
+            <marker id="qa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-acc"/></marker>
+            <marker id="qr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-ret"/></marker>
+          </defs>
+          <g>
+            <text x="60" y="30" text-anchor="middle" class="t-title">Guest</text>
+            <text x="185" y="30" text-anchor="middle" class="t-title">Next.js</text>
+            <text x="310" y="30" text-anchor="middle" class="t-title">FastAPI</text>
+            <text x="435" y="30" text-anchor="middle" class="t-title">Postgres</text>
+            <text x="560" y="30" text-anchor="middle" class="t-title">Relay</text>
+            <text x="685" y="30" text-anchor="middle" class="t-title">Celery</text>
+            <text x="810" y="30" text-anchor="middle" class="t-title">SMS</text>
+            <line x1="60" y1="44" x2="60" y2="415" class="life"/>
+            <line x1="185" y1="44" x2="185" y2="415" class="life"/>
+            <line x1="310" y1="44" x2="310" y2="415" class="life"/>
+            <line x1="435" y1="44" x2="435" y2="415" class="life"/>
+            <line x1="560" y1="44" x2="560" y2="415" class="life"/>
+            <line x1="685" y1="44" x2="685" y2="415" class="life"/>
+            <line x1="810" y1="44" x2="810" y2="415" class="life"/>
+          </g>
+          <line x1="60" y1="80" x2="183" y2="80" class="edge" marker-end="url(#q)"/>
+          <text x="68" y="73" class="t-lbl">submit form + key</text>
+          <line x1="185" y1="114" x2="308" y2="114" class="edge" marker-end="url(#q)"/>
+          <text x="193" y="107" class="t-lbl">POST /entries · Idempotency-Key</text>
+          <line x1="310" y1="148" x2="433" y2="148" class="edge-acc" marker-end="url(#qa)"/>
+          <text x="318" y="141" class="t-lbl t-acc">BEGIN · insert entry + outbox row · COMMIT</text>
+          <line x1="435" y1="182" x2="312" y2="182" class="edge-ret" marker-end="url(#qr)"/>
+          <text x="318" y="175" class="t-lbl">new entry, or the existing one for a repeated key</text>
+          <line x1="310" y1="216" x2="187" y2="216" class="edge-ret" marker-end="url(#qr)"/>
+          <text x="193" y="209" class="t-lbl">201 · token, position</text>
+          <line x1="185" y1="250" x2="62" y2="250" class="edge-ret" marker-end="url(#qr)"/>
+          <text x="68" y="243" class="t-lbl">redirect to /w/{token}</text>
+
+          <line x1="560" y1="284" x2="437" y2="284" class="edge-acc" marker-end="url(#qa)"/>
+          <text x="443" y="277" class="t-lbl t-acc">claim unpublished rows</text>
+          <line x1="560" y1="318" x2="683" y2="318" class="edge-acc" marker-end="url(#qa)"/>
+          <text x="568" y="311" class="t-lbl t-acc">send_join_confirmation</text>
+          <line x1="685" y1="352" x2="808" y2="352" class="edge" marker-end="url(#q)"/>
+          <text x="693" y="345" class="t-lbl">send text</text>
+          <line x1="810" y1="392" x2="62" y2="392" class="edge-ret" marker-end="url(#qr)"/>
+          <text x="436" y="385" text-anchor="middle" class="t-lbl">"You're #4 at Olive &amp; Ember. Status: link"</text>
+        </svg>
+      </div>
+      <figcaption>The guest gets their answer as soon as the transaction commits, before any text is sent. If the guest taps Join twice, the second request carries the same idempotency key and gets back the same entry.</figcaption>
+    </figure>
+
+    <figure>
+      <h3>Notify, seat, and a no-show timer that does nothing</h3>
+      <div class="fig-scroll">
+        <svg viewBox="0 0 860 440" role="img" aria-label="Notify sequence: the host notifies with expected version 3; FastAPI sets status notified and version 4 and writes outbox rows in one transaction; NOTIFY updates every board; Celery sends the table-ready text and schedules expire_no_show in 10 minutes. The host seats the party with version 4. Ten minutes later expire_no_show checks the entry, finds it seated, and does nothing." style="min-width: 760px">
+          <defs>
+            <marker id="n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker>
+            <marker id="na" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-acc"/></marker>
+            <marker id="nr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah-ret"/></marker>
+          </defs>
+          <g>
+            <text x="60" y="30" text-anchor="middle" class="t-title">Host</text>
+            <text x="200" y="30" text-anchor="middle" class="t-title">FastAPI</text>
+            <text x="340" y="30" text-anchor="middle" class="t-title">Postgres</text>
+            <text x="480" y="30" text-anchor="middle" class="t-title">Relay</text>
+            <text x="620" y="30" text-anchor="middle" class="t-title">Celery</text>
+            <text x="770" y="30" text-anchor="middle" class="t-title">Guest's phone</text>
+            <line x1="60" y1="44" x2="60" y2="425" class="life"/>
+            <line x1="200" y1="44" x2="200" y2="425" class="life"/>
+            <line x1="340" y1="44" x2="340" y2="425" class="life"/>
+            <line x1="480" y1="44" x2="480" y2="425" class="life"/>
+            <line x1="620" y1="44" x2="620" y2="425" class="life"/>
+            <line x1="770" y1="44" x2="770" y2="425" class="life"/>
+          </g>
+          <line x1="60" y1="78" x2="198" y2="78" class="edge" marker-end="url(#n)"/>
+          <text x="68" y="71" class="t-lbl">notify · expected_version 3</text>
+          <line x1="200" y1="110" x2="338" y2="110" class="edge-acc" marker-end="url(#na)"/>
+          <text x="208" y="103" class="t-lbl t-acc">notified, version 4 + 2 outbox rows · one transaction</text>
+          <line x1="340" y1="142" x2="62" y2="142" class="edge-ret" marker-end="url(#nr)"/>
+          <text x="200" y="135" text-anchor="middle" class="t-lbl">NOTIFY → SSE to every open board</text>
+          <line x1="480" y1="174" x2="618" y2="174" class="edge-acc" marker-end="url(#na)"/>
+          <text x="488" y="167" class="t-lbl t-acc">send_table_ready · expire_no_show (in 10 min)</text>
+          <line x1="620" y1="206" x2="768" y2="206" class="edge" marker-end="url(#n)"/>
+          <text x="628" y="199" class="t-lbl">"Your table is ready"</text>
+          <line x1="60" y1="244" x2="198" y2="244" class="edge" marker-end="url(#n)"/>
+          <text x="68" y="237" class="t-lbl">guest arrives · seat · version 4</text>
+          <line x1="200" y1="276" x2="338" y2="276" class="edge" marker-end="url(#n)"/>
+          <text x="208" y="269" class="t-lbl">seated, version 5</text>
+
+          <line x1="20" y1="314" x2="840" y2="314" class="divider"/>
+          <rect x="360" y="303" width="140" height="22" rx="11" style="fill: var(--surface-2)"/>
+          <text x="430" y="318" text-anchor="middle" class="t-lbl" style="fill: var(--amber); font-weight: 700">10 minutes later</text>
+
+          <line x1="620" y1="356" x2="342" y2="356" class="edge" marker-end="url(#n)"/>
+          <text x="348" y="349" class="t-lbl">expire_no_show: still notified, same notified_at?</text>
+          <line x1="340" y1="396" x2="618" y2="396" class="edge-ret" marker-end="url(#nr)"/>
+          <text x="348" y="389" class="t-lbl">no, seated → do nothing</text>
+        </svg>
+      </div>
+      <figcaption>Two safeguards are at work here. <code>expected_version</code> means that when two hosts tap at once, the second gets a 409 and a fresh board instead of overwriting. The timer re-checks the database before it acts, so a late or duplicated task is harmless.</figcaption>
+    </figure>
+  </section>
+
+  <section id="data">
+    <h2>Data model</h2>
+    <p class="prose">Three new tables, one Alembic migration each. Statuses are stored as <code>text</code> with a <code>CHECK</code> constraint rather than a Postgres <code>ENUM</code>, because adding a status later is then an ordinary expand-and-contract migration.</p>
+    <div class="schema">
+      <div class="tbl">
+        <h3>restaurants</h3>
+        <dl>
+          <dt>id</dt><dd>bigint, primary key</dd>
+          <dt>slug</dt><dd>unique, used in the QR URL</dd>
+          <dt>name</dt><dd>shown to guests</dd>
+          <dt>timezone</dt><dd>IANA name, e.g. America/Chicago</dd>
+          <dt>waitlist_open</dt><dd>host can pause joining</dd>
+          <dt>max_party_size</dt><dd>default 12</dd>
+          <dt>notify_grace_minutes</dt><dd>default 10</dd>
+          <dt>avg_turn_minutes</dt><dd>for the wait estimate</dd>
+        </dl>
+      </div>
+      <div class="tbl">
+        <h3>waitlist_entries</h3>
+        <dl>
+          <dt>id</dt><dd>bigint, internal only</dd>
+          <dt>public_token</dt><dd>random 128-bit, in the guest's link</dd>
+          <dt>restaurant_id</dt><dd>FK, on every query</dd>
+          <dt>guest_name</dt><dd>1–80 chars</dd>
+          <dt>phone_e164</dt><dd>normalised, e.g. +14155550142</dd>
+          <dt>email</dt><dd>validated at the API</dd>
+          <dt>party_size</dt><dd>CHECK ≥ 1; max checked per restaurant</dd>
+          <dt>sms_consent</dt><dd>required to send texts</dd>
+          <dt>status</dt><dd>see lifecycle</dd>
+          <dt>joined_at · notified_at · seated_at · ended_at</dt><dd>timestamptz</dd>
+          <dt>version</dt><dd>optimistic lock, +1 per change</dd>
+          <dt>idempotency_key</dt><dd>uuid from the form</dd>
+        </dl>
+        <div class="idx">
+          <span><code>(restaurant_id, joined_at, id) WHERE active</code> board order, position, paging</span>
+          <span><code>UNIQUE (restaurant_id, idempotency_key)</code> double-submit returns the same entry</span>
+          <span><code>UNIQUE (restaurant_id, phone_e164) WHERE active</code> one place in line per phone</span>
+        </div>
+      </div>
+      <div class="tbl">
+        <h3>outbox_events</h3>
+        <dl>
+          <dt>id</dt><dd>bigint, used as the event ID</dd>
+          <dt>type</dt><dd>e.g. waitlist.entry_notified</dd>
+          <dt>payload</dt><dd>jsonb: IDs and correlation_id, never phone or email</dd>
+          <dt>created_at</dt><dd>timestamptz</dd>
+          <dt>published_at</dt><dd>null until the relay hands it to Celery</dd>
+        </dl>
+        <div class="idx"><span><code>(id) WHERE published_at IS NULL</code> keeps the relay's poll cheap</span></div>
+      </div>
+      <div class="tbl">
+        <h3>notification_deliveries</h3>
+        <dl>
+          <dt>outbox_event_id</dt><dd>UNIQUE, so a re-delivered task can't text twice</dd>
+          <dt>entry_id</dt><dd>FK</dd>
+          <dt>channel</dt><dd>sms · email</dd>
+          <dt>status</dt><dd>sent · failed</dd>
+          <dt>provider_message_id</dt><dd>for support and delivery receipts</dd>
+        </dl>
+      </div>
+    </div>
+    <p class="prose"><strong>A guest's position is calculated, never stored.</strong> It's the count of active entries that joined earlier, which the partial index answers quickly. Removing one party then changes nobody else's row.</p>
+<pre><code>SELECT count(*) + 1 FROM waitlist_entries
+WHERE restaurant_id = :rid
+  AND status IN ('waiting', 'notified')
+  AND (joined_at, id) &lt; (:joined_at, :id);</code></pre>
+  </section>
+
+  <section id="api">
+    <h2>API</h2>
+    <p class="prose">All under <code>/api/v1</code>. Errors use the existing <code>{"code", "detail"}</code> shape from <code>app/api/errors.py</code>. New error codes subclass the categories in <code>app/core/errors.py</code>, so they need no handler changes.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Who</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method">GET</span> <code>/restaurants/{slug}/waitlist/summary</code></td><td>Guest</td><td>Open or paused, parties ahead, estimated wait.</td></tr>
+          <tr><td><span class="method">POST</span> <code>/restaurants/{slug}/waitlist/entries</code></td><td>Guest</td><td>Join. Requires an <code>Idempotency-Key</code> header. Returns 201 with the token and position. Errors: <code>waitlist_closed</code>, <code>party_too_large</code> (422), <code>already_on_waitlist</code> (409).</td></tr>
+          <tr><td><span class="method">GET</span> <code>/waitlist/entries/{token}</code></td><td>Guest</td><td>Status, position and estimate for the status page.</td></tr>
+          <tr><td><span class="method">POST</span> <code>/waitlist/entries/{token}/cancel</code></td><td>Guest</td><td>Leave the list.</td></tr>
+          <tr><td><span class="method">GET</span> <code>/restaurants/{id}/waitlist?cursor=</code></td><td>Host</td><td>Active entries in line order. Cursor paging on <code>(joined_at, id)</code>.</td></tr>
+          <tr><td><span class="method">POST</span> <code>/restaurants/{id}/waitlist/entries/{entry_id}/{action}</code></td><td>Host</td><td><code>notify</code>, <code>seat</code>, <code>no-show</code> or <code>remove</code>. Body carries <code>expected_version</code>. A stale version returns 409 <code>entry_changed</code>.</td></tr>
+          <tr><td><span class="method">GET</span> <code>/restaurants/{id}/waitlist/stream</code></td><td>Host</td><td>Server-sent events. Sends <code>id:</code> on each event so a reconnect resumes from <code>Last-Event-ID</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two-col">
+      <div>
+        <h3>Checked at the boundary</h3>
+        <ul>
+          <li>Name 1–80 characters, trimmed.</li>
+          <li>Phone parsed to E.164 with <code>phonenumbers</code>, using the restaurant's country as the default region.</li>
+          <li>Email through Pydantic's <code>EmailStr</code>.</li>
+          <li>Party size between 1 and the restaurant's <code>max_party_size</code>.</li>
+          <li>Host routes check staff membership for that <code>restaurant_id</code>, or raise <code>PermissionDeniedError</code> (403).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>When a phone is already in line</h3>
+        <p>The API returns 409 <code>already_on_waitlist</code> and re-texts the status link <em>to that phone</em>. It never returns the existing token in the response. Otherwise anyone who typed a stranger's number could take over their place and cancel it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="jobs">
+    <h2>Background jobs (Celery)</h2>
+    <p class="prose">Tasks are thin wrappers: open a session, call a service, commit. Business rules stay in the services, where they're already tested. Each task wraps the async service in <code>asyncio.run</code> and uses a <code>NullPool</code> engine created after the worker forks.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Task</th><th>Queue</th><th>Triggered by</th><th>Safe to run twice because</th></tr></thead>
+        <tbody>
+          <tr><td><code>send_join_confirmation</code></td><td>notifications</td><td>outbox: entry_joined</td><td>unique delivery row per event</td></tr>
+          <tr><td><code>send_table_ready</code></td><td>notifications</td><td>outbox: entry_notified</td><td>unique delivery row per event</td></tr>
+          <tr><td><code>expire_no_show</code></td><td>waitlist</td><td>outbox: entry_notified, delayed by the grace period</td><td>acts only if still notified with the same <code>notified_at</code></td></tr>
+          <tr><td><code>close_waitlists</code></td><td>waitlist</td><td>Beat, every 5 min</td><td>closes only lists whose local closing time has passed</td></tr>
+          <tr><td><code>purge_guest_pii</code></td><td>waitlist</td><td>Beat, daily</td><td>clears name, phone and email on entries older than 30 days</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="prose">
+      <li>Every task uses <code>acks_late=True</code>, exponential backoff with jitter (max 5 tries), and a hard time limit. Every provider call has its own timeout.</li>
+      <li><code>close_waitlists</code> runs on a fixed interval and checks each restaurant's local time. That avoids one cron entry per restaurant and handles time-zone and daylight-saving changes.</li>
+      <li>Delayed tasks with a Redis broker get redelivered once they pass the broker's <code>visibility_timeout</code>, which is 1 hour by default. A 10-minute grace period is well inside that. The re-check covers any redelivery.</li>
+      <li>Run Beat as exactly one instance. The relay can run several copies safely because it claims rows with <code>FOR UPDATE SKIP LOCKED</code>.</li>
+    </ul>
+  </section>
+
+  <section id="failures">
+    <h2>When something breaks</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Failure</th><th>Guests and hosts see</th><th>System does</th></tr></thead>
+        <tbody>
+          <tr><td>SMS provider down</td><td>Joining and the board work. The board marks the party "text not sent" so the host can call out the name.</td><td>Task retries with backoff, then records <code>failed</code> and alerts.</td></tr>
+          <tr><td>Redis or the worker down</td><td>Nothing during the outage. Texts arrive late.</td><td>Outbox rows pile up; the relay catches up on recovery. Alert when the oldest unpublished row is over 2 minutes old.</td></tr>
+          <tr><td>API process restarts</td><td>The board reconnects within seconds.</td><td><code>EventSource</code> reconnects with <code>Last-Event-ID</code>; the board refetches the list.</td></tr>
+          <tr><td>Two hosts tap at once</td><td>The second sees "Already updated by another host".</td><td>Version check returns 409; the board reloads that row.</td></tr>
+          <tr><td>Guest double-taps Join</td><td>One entry.</td><td>Same idempotency key returns the existing entry.</td></tr>
+          <tr><td>Postgres down</td><td>Join shows "The waitlist is unavailable. Please see the host."</td><td><code>/ready</code> returns 503; the load balancer stops routing to the API.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two-col">
+      <div>
+        <h3>Privacy and abuse</h3>
+        <ul>
+          <li>Phone and email never appear in logs or outbox payloads; tasks load them from the entry.</li>
+          <li>Phone numbers are masked on the board (<code>···-0142</code>).</li>
+          <li>Texts are sent only with <code>sms_consent</code>. STOP replies come in through the provider's webhook (a later phase).</li>
+          <li>Rate limits per IP and per phone on Join, stored in Redis.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Observability</h3>
+        <ul>
+          <li>A correlation ID goes from the request into the outbox payload and every task log line.</li>
+          <li>Metrics: active parties per restaurant, notify-to-seat time, no-show rate, text failure rate, age of the oldest unpublished outbox row.</li>
+          <li>Health: the relay and worker each expose a liveness check for their containers.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="code">
+    <h2>Code layout</h2>
+    <p class="prose">New code follows the structure of <code>app/modules/menu/</code>: router → service → repository, with the repository behind a <code>Protocol</code>.</p>
+<pre><code>backend/app/
+  modules/
+    restaurants/          models, repository, service (slug lookup, settings)
+    waitlist/
+      domain.py           pure: transitions, wait estimate, no I/O
+      service.py          WaitlistService + WaitlistRepository Protocol
+      repository.py       SqlWaitlistRepository (never commits)
+      router.py           guest + host routes, SSE stream
+      schemas.py          JoinRequest, EntryRead, BoardPage
+      exceptions.py       InvalidTransitionError, AlreadyOnWaitlistError, ...
+    outbox/               OutboxEvent model, add_event(), relay query
+  adapters/notifications/ NotificationSender Protocol; twilio, smtp, fake
+  worker/
+    celery_app.py         queues, Beat schedule, task defaults
+    db.py                 NullPool engine for tasks
+    tasks.py              thin task wrappers
+    relay.py              outbox → Celery, run as its own container
+docker-compose.yml        + redis, worker, beat, relay</code></pre>
+    <div class="callout">
+      <strong>Convention change</strong>
+      <p><code>SqlMenuItemRepository.add</code> commits inside the repository. The waitlist can't do that: the entry change and its outbox row must commit together. Waitlist repositories only add to the session, and <code>WaitlistService</code> commits once per use case. Move the menu module to the same rule in a small follow-up, so the codebase has one convention.</p>
+    </div>
+  </section>
+
+  <section id="plan">
+    <h2>Plan</h2>
+    <ol class="phases">
+      <li><div><strong>Restaurants and the core waitlist</strong><span class="muted">Tables, domain rules, guest join and status page, host board refreshing every 15s. Usable on day one, without texts.</span></div></li>
+      <li><div><strong>Outbox, Celery and notifications</strong><span class="muted">Relay, worker, Beat, Redis in Compose. Confirmation and table-ready texts, no-show timer.</span></div></li>
+      <li><div><strong>Live board</strong><span class="muted">LISTEN/NOTIFY, SSE stream and Next.js proxy. Polling stays as the fallback.</span></div></li>
+      <li><div><strong>ADRs</strong><span class="muted"><code>0002-background-jobs</code> (Celery + outbox) and <code>0003-waitlist-realtime</code> (NOTIFY + SSE).</span></div></li>
+    </ol>
+
+    <div class="two-col">
+      <div>
+        <h3>Shortcuts, on purpose</h3>
+        <ul>
+          <li><strong>Static QR code.</strong> A photo of it lets someone join from home. Rate limits and one-place-per-phone limit the damage. Add rotating QR tokens if remote joins become a problem.</li>
+          <li><strong>Guest status page polls every 15s.</strong> Move it to SSE if guest traffic makes polling expensive.</li>
+          <li><strong>Wait estimate</strong> is parties ahead × <code>avg_turn_minutes</code>. Switch to a historical median once the reports module exists.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Open questions</h3>
+        <ul>
+          <li>Is email required, or only phone?</li>
+          <li>Max party size and grace period for each restaurant?</li>
+          <li>Host sign-in: there's no auth module yet, and the host board needs one.</li>
+          <li>Which SMS provider?</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom: 8px">Tests</h3>
+      <ul class="prose">
+        <li>Unit tests for <code>domain.py</code>: every allowed transition, every rejected one, and the wait estimate.</li>
+        <li>Service tests with in-memory fakes, like <code>tests/modules/menu/fakes.py</code>: repeated idempotency key, phone already in line, stale version, and <code>expire_no_show</code> doing nothing after a seat.</li>
+        <li>Router tests through httpx for status codes and error codes.</li>
+      </ul>
+    </div>
+  </section>
+</main>

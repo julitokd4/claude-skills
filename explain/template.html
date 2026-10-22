@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUBJECT Explained</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" id="hl-light" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link rel="stylesheet" id="hl-dark" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+<style>
+:root {
+  --bg: #fbfaf8; --surface: #ffffff; --surface-2: #f3f1ed; --border: #e6e2db;
+  --text: #1c1b19; --muted: #6b675f; --accent: #5b4cdb; --accent-soft: #ece9ff;
+  --warn: #b45309; --warn-soft: #fef3e2;
+  --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111114; --surface: #18181c; --surface-2: #202026; --border: #2c2c33;
+    --text: #ecebf0; --muted: #9b99a6; --accent: #9d93ff; --accent-soft: #25223f;
+    --warn: #f5a524; --warn-soft: #2d2414; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111114; --surface: #18181c; --surface-2: #202026; --border: #2c2c33;
+  --text: #ecebf0; --muted: #9b99a6; --accent: #9d93ff; --accent-soft: #25223f;
+  --warn: #f5a524; --warn-soft: #2d2414; --shadow: none;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.65 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 920px; margin: 0 auto; padding: 56px 16px 96px; }
+header .kicker { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; letter-spacing: -.02em; margin: 8px 0 16px; }
+.tldr { font-size: 18px; color: var(--muted); max-width: 70ch; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 8px; }
+nav.toc a { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); color: var(--text); text-decoration: none; border: 1px solid var(--border); }
+nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+section { margin-top: 56px; }
+h2 { font-size: 24px; letter-spacing: -.01em; margin: 0 0 16px; display: flex; align-items: center; gap: 10px; }
+h2::before { content: ""; width: 6px; height: 22px; border-radius: 3px; background: var(--accent); }
+h3 { font-size: 17px; margin: 24px 0 8px; }
+p, li { max-width: 72ch; }
+a { color: var(--accent); }
+code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .88em; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
+.diagram { overflow-x: auto; text-align: center; }
+.diagram pre.mermaid { background: none; margin: 0; }
+figure.code { margin: 24px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+figure.code figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; font: 13px "JetBrains Mono", monospace; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface-2); }
+figure.code pre { margin: 0; overflow-x: auto; }
+figure.code pre code { display: block; padding: 16px 0; background: none; font-size: 13.5px; line-height: 1.7; counter-reset: line var(--start); }
+figure.code pre code .ln { display: block; padding: 0 16px 0 0; }
+figure.code pre code .ln::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.5em; padding-right: 1em; text-align: right; color: var(--muted); opacity: .6; user-select: none; }
+figure.code pre code .ln.hot { background: var(--accent-soft); box-shadow: inset 3px 0 var(--accent); }
+ol.callouts { list-style: none; margin: 0; padding: 14px 16px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+ol.callouts li { max-width: none; font-size: 14.5px; }
+ol.callouts b { font: 600 12px "JetBrains Mono", monospace; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 6px; margin-right: 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.tech h4 { margin: 0 0 2px; font-size: 16px; }
+.tech .ver { font: 12px "JetBrains Mono", monospace; color: var(--muted); }
+.tech p { margin: 8px 0 0; font-size: 14.5px; color: var(--muted); }
+ol.steps { counter-reset: s; list-style: none; padding: 0; }
+ol.steps li { counter-increment: s; position: relative; padding-left: 44px; margin: 12px 0; }
+ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 600; font-size: 14px; display: grid; place-items: center; }
+.gotcha { background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+.gotcha strong { color: var(--warn); }
+footer { margin-top: 72px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Explainer</div>
+  <h1>SUBJECT</h1>
+  <p class="tldr">TL;DR — what it is, what it does, and why it exists, in two or three sentences.</p>
+  <nav class="toc">
+    <a href="#architecture">Architecture</a>
+    <a href="#flows">Flows</a>
+    <a href="#code">Critical code</a>
+    <a href="#stack">Technologies</a>
+    <a href="#gotchas">Gotchas</a>
+  </nav>
+</header>
+
+<section id="architecture">
+  <h2>Architecture</h2>
+  <div class="card diagram">
+<pre class="mermaid">
+flowchart LR
+  Client -->|HTTPS JSON| API[API service]
+  API -->|SQL| DB[(Postgres)]
+</pre>
+  </div>
+  <ul>
+    <li><strong>API service</strong> — one line on its responsibility.</li>
+  </ul>
+</section>
+
+<section id="flows">
+  <h2>Flows</h2>
+  <div class="card diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant C as Client
+  participant A as API
+  C->>A: POST /orders
+  A-->>C: 201 Created
+</pre>
+  </div>
+  <ol class="steps">
+    <li>Step one, and why it happens here.</li>
+  </ol>
+</section>
+
+<section id="code">
+  <h2>Critical code</h2>
+  <figure class="code">
+    <figcaption><span>src/path/file.ts</span><span>L40–46</span></figcaption>
+    <!-- data-start = first real line number; data-hot = lines to highlight -->
+<pre><code class="language-typescript" data-start="40" data-hot="42,44">export function example() {
+  const x = compute();
+  if (!x) throw new Error("missing");
+  // …
+  return x;
+}</code></pre>
+    <ol class="callouts">
+      <li><b>L42</b> Why this line matters, not what it does.</li>
+      <li><b>L44</b> Why this line matters.</li>
+    </ol>
+  </figure>
+</section>
+
+<section id="stack">
+  <h2>Technologies &amp; libraries</h2>
+  <div class="grid">
+    <div class="card tech">
+      <h4>Library</h4><span class="ver">v1.2.3</span>
+      <p>Its role here and why it was chosen.</p>
+    </div>
+  </div>
+</section>
+
+<section id="gotchas">
+  <h2>Gotchas</h2>
+  <div class="gotcha"><strong>Invariant:</strong> what breaks if this changes.</div>
+</section>
+
+<footer>Generated by the <code>explain</code> skill.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script type="module">
+// Line numbers + highlighted lines, applied after syntax highlighting.
+// shortcut: a token spanning lines (block comment, template string) loses its colour past line 1; switch to a line-numbers plugin if that shows up often.
+document.querySelectorAll("pre code[data-start]").forEach(el => {
+  hljs.highlightElement(el);
+  const start = +el.dataset.start || 1;
+  const hot = new Set((el.dataset.hot || "").split(",").map(Number));
+  el.style.setProperty("--start", start - 1);
+  el.innerHTML = el.innerHTML.split("\n")
+    .map((l, i) => `<span class="ln${hot.has(start + i) ? " hot" : ""}">${l || " "}</span>`).join("");
+});
+document.querySelectorAll("pre code:not([data-start])").forEach(el => hljs.highlightElement(el));
+
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+const dark = document.documentElement.dataset.theme === "dark" ||
+  (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", fontFamily: "Inter, sans-serif" });
+await mermaid.run({ querySelector: "pre.mermaid" });
+</script>
+</body>
+</html>
