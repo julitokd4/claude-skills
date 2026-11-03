@@ -1,0 +1,238 @@
+<title>GOAL NAME</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one reading column; steps are numbered cards because order is the content. */
+:root {
+  --bg: #fbfaf8; --surface: #ffffff; --surface-2: #f3f1ed; --border: #e6e2db;
+  --text: #1c1b19; --muted: #6b675f; --accent: #5b4cdb; --accent-soft: #ece9ff;
+  --ok: #15803d; --ok-soft: #e7f6ec; --warn: #b45309; --warn-soft: #fef3e2;
+  --code-kw: #a626a4; --code-str: #50a14f; --code-com: #8a857b; --code-fn: #4078f2; --code-num: #b76b01;
+  --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111114; --surface: #18181c; --surface-2: #202026; --border: #2c2c33;
+    --text: #ecebf0; --muted: #9b99a6; --accent: #9d93ff; --accent-soft: #25223f;
+    --ok: #4ade80; --ok-soft: #13261b; --warn: #f5a524; --warn-soft: #2d2414;
+    --code-kw: #d08bdc; --code-str: #98c379; --code-com: #7f7d88; --code-fn: #7aa2f7; --code-num: #e5a465;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111114; --surface: #18181c; --surface-2: #202026; --border: #2c2c33;
+  --text: #ecebf0; --muted: #9b99a6; --accent: #9d93ff; --accent-soft: #25223f;
+  --ok: #4ade80; --ok-soft: #13261b; --warn: #f5a524; --warn-soft: #2d2414;
+  --code-kw: #d08bdc; --code-str: #98c379; --code-com: #7f7d88; --code-fn: #7aa2f7; --code-num: #e5a465;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg); color: var(--text);
+  font: 16px/1.65 var(--font-body); -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 880px; margin: 0 auto; padding-block: 48px 96px; }
+header .kicker { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; letter-spacing: -.02em; margin: 8px 0 16px; text-wrap: balance; }
+h2 { font-size: 24px; letter-spacing: -.01em; margin: 0 0 16px; display: flex; align-items: center; gap: 10px; text-wrap: balance; }
+h2::before { content: ""; flex: none; width: 6px; height: 22px; border-radius: 3px; background: var(--accent); }
+h3 { font-size: 19px; margin: 0; text-wrap: balance; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lead { font-size: 18px; color: var(--muted); }
+.prereq { font-size: 15px; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+nav.toc a { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); color: var(--text); text-decoration: none; border: 1px solid var(--border); }
+nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+section { margin-top: 56px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; min-width: 0; }
+.diagram { overflow-x: auto; text-align: center; }
+.diagram pre.mermaid { margin: 0; background: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.concept h4, .tech h4 { margin: 0 0 6px; font-size: 16px; }
+.concept p { margin: 0; font-size: 14.5px; }
+.concept .analogy { margin-top: 10px; font-size: 14px; color: var(--muted); padding-left: 10px; border-left: 3px solid var(--accent-soft); }
+.tech .ver { font: 12px var(--font-mono); color: var(--muted); }
+.tech p { margin: 8px 0 0; font-size: 14.5px; color: var(--muted); }
+article.step { margin: 32px 0 44px; }
+.step-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.step-num { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.step .why { color: var(--muted); margin: 4px 0 12px; }
+figure.code { margin: 16px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); min-width: 0; }
+figure.code figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; font: 13px var(--font-mono); color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface-2); }
+figure.code figcaption span { min-width: 0; overflow-wrap: anywhere; }
+button.copy { flex: none; font: 600 12px var(--font-body); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+button.copy:hover { border-color: var(--accent); color: var(--accent); }
+figure.code pre { margin: 0; overflow-x: auto; }
+figure.code pre code { display: block; padding: 14px 0; background: none; border-radius: 0; font-size: 13.5px; line-height: 1.7; counter-reset: line; overflow-wrap: normal; white-space: pre; }
+figure.code pre code .ln { display: block; padding-right: 16px; }
+figure.code pre code .ln::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.2em; padding-right: 1em; text-align: right; color: var(--muted); opacity: .6; user-select: none; }
+figure.code pre code .ln.hot { background: var(--accent-soft); box-shadow: inset 3px 0 var(--accent); }
+figure.code pre code.plain { padding: 14px 16px; }
+figure.code.output pre code { color: var(--muted); }
+.hljs-keyword, .hljs-built_in, .hljs-literal { color: var(--code-kw); }
+.hljs-string { color: var(--code-str); }
+.hljs-comment, .hljs-meta { color: var(--code-com); font-style: italic; }
+.hljs-title, .hljs-title.function_, .hljs-title.class_ { color: var(--code-fn); }
+.hljs-number { color: var(--code-num); }
+ol.callouts { list-style: none; margin: 0; padding: 14px 16px; border-top: 1px solid var(--border); display: grid; gap: 8px; }
+ol.callouts li { max-width: none; font-size: 14.5px; }
+ol.callouts b { font: 600 12px var(--font-mono); color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 6px; margin-right: 8px; }
+.checkpoint, .gotcha, .note { border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
+.checkpoint { background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+.checkpoint > strong { color: var(--ok); }
+.gotcha { background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); }
+.gotcha > strong { color: var(--warn); }
+.note { background: var(--accent-soft); }
+.checkpoint p, .gotcha p, .note p { margin: 4px 0; }
+ol.flow { padding-left: 22px; }
+ol.flow li { margin: 6px 0; }
+footer { margin-top: 72px; color: var(--muted); font-size: 13px; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="kicker">How to build</div>
+  <h1>GOAL</h1>
+  <p class="lead">What you'll have at the end, in one or two plain sentences, and why you'd want it.</p>
+  <p class="prereq"><strong>You'll need:</strong> what must already exist, e.g. a running FastAPI app, Python 3.12+.</p>
+  <nav class="toc">
+    <a href="#big-picture">Big picture</a>
+    <a href="#concepts">Concepts</a>
+    <a href="#libraries">Libraries</a>
+    <a href="#steps">Steps</a>
+    <a href="#flow">How it runs</a>
+    <a href="#test">Try it</a>
+    <a href="#gotchas">Mistakes to avoid</a>
+  </nav>
+</header>
+
+<section id="big-picture">
+  <h2>The big picture</h2>
+  <p>One short paragraph: the pieces involved and how they talk to each other.</p>
+  <div class="card diagram">
+<pre class="mermaid">
+flowchart LR
+  Client -->|1. login| API
+  API -->|2. token| Client
+  Client -->|3. request + token| API
+</pre>
+  </div>
+</section>
+
+<section id="concepts">
+  <h2>Concepts in plain words</h2>
+  <div class="grid">
+    <div class="card concept">
+      <h4>Term</h4>
+      <p>What it is in one or two sentences, with no jargon the reader hasn't met yet.</p>
+      <div class="analogy">Think of it like … (an everyday comparison).</div>
+    </div>
+  </div>
+</section>
+
+<section id="libraries">
+  <h2>Libraries you'll use</h2>
+  <div class="grid">
+    <div class="card tech">
+      <h4>library-name</h4><span class="ver">v1.2.3 · checked YYYY-MM-DD</span>
+      <p>The job it does here, and why this one over the alternative.</p>
+    </div>
+  </div>
+  <figure class="code">
+    <figcaption><span>terminal</span><button class="copy">Copy</button></figcaption>
+<pre><code class="language-bash plain">uv add library-name</code></pre>
+  </figure>
+</section>
+
+<section id="steps">
+  <h2>Step by step</h2>
+
+  <article class="step" id="step-1">
+    <div class="step-head"><span class="step-num">1</span><h3>Verb-first step title</h3></div>
+    <p class="why">What this step adds and why it comes now.</p>
+    <figure class="code">
+      <figcaption><span>app/path/file.py · new file</span><button class="copy">Copy</button></figcaption>
+      <!-- data-hot = line numbers (within this snippet, from 1) explained in the callouts -->
+<pre><code class="language-python" data-hot="2">def example() -&gt; str:
+    return "the line that matters"</code></pre>
+      <ol class="callouts">
+        <li><b>L2</b> Why this line matters, not a restatement of it.</li>
+      </ol>
+    </figure>
+    <div class="checkpoint"><strong>Checkpoint:</strong> <p>Run <code>command</code>; you should see <code>expected output</code>.</p></div>
+  </article>
+</section>
+
+<section id="flow">
+  <h2>How it runs, end to end</h2>
+  <div class="card diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant C as Client
+  participant A as API
+  C->>A: request
+  A-->>C: response
+</pre>
+  </div>
+  <ol>
+    <li>Each arrow above, in one sentence, naming the function from the steps that handles it.</li>
+  </ol>
+</section>
+
+<section id="test">
+  <h2>Try it</h2>
+  <figure class="code">
+    <figcaption><span>terminal</span><button class="copy">Copy</button></figcaption>
+<pre><code class="language-bash plain">curl -s http://localhost:8000/...</code></pre>
+  </figure>
+</section>
+
+<section id="gotchas">
+  <h2>Mistakes to avoid</h2>
+  <div class="gotcha"><strong>Mistake:</strong> <p>What people get wrong, what happens when they do, and the fix.</p></div>
+</section>
+
+<section id="next">
+  <h2>Where to go next</h2>
+  <ul><li>The natural follow-up, and when you'd need it.</li></ul>
+</section>
+
+<footer>Generated by the <code>how-to</code> skill. Versions checked on YYYY-MM-DD.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+// Highlight first, then wrap lines for numbering; keep the raw text for the copy button.
+document.querySelectorAll("figure.code pre code").forEach(function (el) {
+  el.dataset.raw = el.textContent;
+  if (!el.classList.contains("nohl") && window.hljs) hljs.highlightElement(el);
+  if (el.classList.contains("plain")) return;
+  var hot = new Set((el.dataset.hot || "").split(",").map(Number));
+  // shortcut: a token spanning lines (block comment, multi-line string) loses its colour past line 1; switch to a line-numbers plugin if that shows up often.
+  el.innerHTML = el.innerHTML.split("\n").map(function (l, i) {
+    return '<span class="ln' + (hot.has(i + 1) ? " hot" : "") + '">' + (l || " ") + "</span>";
+  }).join("");
+});
+document.querySelectorAll("button.copy").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var code = btn.closest("figure").querySelector("pre code");
+    var done = function (label) { btn.textContent = label; setTimeout(function () { btn.textContent = "Copy"; }, 1500); };
+    navigator.clipboard.writeText(code.dataset.raw).then(function () { done("Copied"); }, function () {
+      var range = document.createRange(); range.selectNodeContents(code);
+      var sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      done("Selected, press Ctrl+C");
+    });
+  });
+});
+</script>

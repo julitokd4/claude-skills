@@ -5,6 +5,7 @@ Personal, reusable [Claude Code](https://claude.com/claude-code) skills — inst
 ## Skills
 
 - **[agentic-development](agentic-development/SKILL.md)** — the default flow: understand, design (patterns, scalability, security surface), implement, verify, review; unit tests only for logic that matters; runs `owasp-check` at its review step.
+- **[how-to](how-to/SKILL.md)**: teaches how to implement something as a beginner-friendly, step-by-step HTML guide (Artifact). It includes a big-picture diagram and runtime flow diagram, concept cards with analogies, library cards with checked versions, and complete copyable code per step with callouts and checkpoints. When run inside a project, it fits the guide to that repo.
 - **[implement](implement/SKILL.md)** — implements one bounded task end-to-end, then validates it against its acceptance criteria or Definition of Done before calling it complete.
 - **[juliopy](juliopy/SKILL.md)** — scaffolds a production-grade Python backend: Docker, Postgres, Django or FastAPI, uv, ruff, mypy, pytest, CI, pre-commit, typed config, health checks. Always resolves current latest-stable versions instead of hardcoding them.
 - **[owasp-check](owasp-check/SKILL.md)** — checks a diff or a codebase against the OWASP Top 10:2025 (plus the API Security Top 10:2023 for HTTP APIs): every category ends Finding, Clean, or N/A, each finding is confirmed with `file:line` evidence and an attack path, and the report gives severity and fixes. Run by `agentic-development` at its review step.
